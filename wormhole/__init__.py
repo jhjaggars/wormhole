@@ -24,7 +24,7 @@ html = Blueprint(r'html', __name__)
 def wormhole():
     d = dict(request.form)
 
-    if d.get("VERIFICATION_TOKEN") != VERIFICATION_TOKEN:
+    if d.get("token") != [VERIFICATION_TOKEN]:
         logger.warn("Didn't receive the proper verification token (%s)", d)
         return "Nope", 403
 
