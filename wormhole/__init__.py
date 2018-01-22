@@ -28,6 +28,7 @@ def wormhole():
         logger.warn("Didn't receive the proper verification token (%s)", d)
         return "Nope", 403
 
+    logger.info(json.dumps(d))
     OUTBOUND.put(json.dumps(d))
     return f"Forwarded {d['text'][0]}"
 
