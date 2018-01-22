@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from flask import Flask, Blueprint
@@ -5,6 +6,9 @@ from flask import request, json
 from gevent.queue import Queue
 import gevent
 import requests
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
@@ -78,10 +82,11 @@ app = Flask(__name__)
 app.register_blueprint(html, url_prefix=r'')
 
 if __name__ == "__main__":
-    if all(CLIENT_ID, CLIENT_SECRET, TOKEN_VALUE, VERIFICATION_TOKEN):
+    if all([CLIENT_ID, CLIENT_SECRET, TOKEN_VALUE, VERIFICATION_TOKEN]):
         from gevent import pywsgi
         from geventwebsocket.handler import WebSocketHandler
         server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
         server.serve_forever()
     else:
+        logging.error("Don't have enough configuration to start.")
         sys.exit(1)
