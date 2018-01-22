@@ -4,7 +4,6 @@ import sys
 from flask import Flask, Blueprint
 from flask import request, json
 from gevent.queue import Queue
-import gevent
 import requests
 
 logging.basicConfig(level=logging.DEBUG)
@@ -26,6 +25,7 @@ def wormhole():
     d = dict(request.form)
 
     if d.get("VERIFICATION_TOKEN") != VERIFICATION_TOKEN:
+        logger.warn("Didn't receive the proper verification token (%s)", d)
         return "Nope", 403
 
     OUTBOUND.put(json.dumps(d))
@@ -84,8 +84,7 @@ app.register_blueprint(html, url_prefix=r'')
 if __name__ == "__main__":
     if all([CLIENT_ID, CLIENT_SECRET, TOKEN_VALUE, VERIFICATION_TOKEN]):
         from gevent import pywsgi
-        from geventwebsocket.handler import WebSocketHandler
-        server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+        server = pywsgi.WSGIServer(('', 5000), app)
         server.serve_forever()
     else:
         logging.error("Don't have enough configuration to start.")
