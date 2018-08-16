@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+gevent = "==1.2.2"
+requests = "==2.18.4"
+Flask = "==0.12.2"
+pyyaml = "*"
+websockets = "*"
+aiohttp = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"

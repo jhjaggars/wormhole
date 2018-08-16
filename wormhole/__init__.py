@@ -41,16 +41,14 @@ def auth():
     params = {
         "code": flask.request.args["code"],
         "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET
+        "client_secret": CLIENT_SECRET,
     }
-    resp = requests.get(
-        "https://slack.com/api/oauth.access",
-        params=params
-    )
+    resp = requests.get("https://slack.com/api/oauth.access", params=params)
     return json.dumps(resp.json())
 
 
 def check_token(func):
+
     def _wrap():
         if TOKEN_HEADER not in request.headers:
             return "Not Authorized", 401
@@ -59,6 +57,7 @@ def check_token(func):
             return "Forbidden", 403
 
         return func()
+
     return _wrap
 
 
@@ -71,9 +70,11 @@ def irc():
 
         MESSAGES.append(request.get_json())
         return json.dumps(request.get_json()), 201
+
     else:
         try:
             return OUTBOUND.get(timeout=5)
+
         except:
             return '{}'
 
