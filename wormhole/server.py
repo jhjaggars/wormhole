@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 import asyncio
 import itertools
@@ -25,21 +24,17 @@ with open(os.path.join(HERE, "settings.yaml")) as settings_fp:
     settings = yaml.safe_load(settings_fp)
 
 irc_settings = settings["irc"]
-slack_settings = {
-    "token": os.environ.get("SLACK_TOKEN"), "hook-url": os.environ.get("SLACK_HOOK_URL")
-}
+SLACK_TOKEN = os.environ["SLACK_TOKEN"]
 
-NAME = irc_settings.get("nick", "klinkbot")
+NAME = irc_settings.get("nick", "wormhole")
 HIGHLIGHTS = irc_settings.get("highlights", {})
 IRC_COMMAND_REGISTRY = []
 
-SLACK_HEADERS = {"Authorization": f"Bearer {slack_settings['token']}"}
+SLACK_HEADERS = {"Authorization": f"Bearer {SLACK_TOKEN}"}
 SLACK_NAME_TO_ID = {}
 SLACK_ID_TO_NAME = {}
 SLACK_USERS = {}
 SLACK_IDS = itertools.count()
-
-pool = ThreadPoolExecutor(4)
 
 
 def command(func):
@@ -74,13 +69,15 @@ def contains_highlight(event):
 async def ping_insights(irc, event):
     if contains_highlight(event):
         logger.debug("saw a highlight ping")
-        async with aiohttp.ClientSession(headers=SLACK_HEADERS) as session:
-            async with session.post(
-                slack_settings["hook_url"],
-                json={"text": f"({event.channel}) {event.nick} says: {event.msg}"},
-            ) as resp:
-                t = await resp.text()
-                logger.debug(t)
+        for dest in irc_settings["highlights-destinations"]:
+            asyncio.Task(
+                to_ws.put(
+                    {
+                        "channel": SLACK_NICK_TO_ID[dest],
+                        "text": f"({event.channel}) *{event.nick}* says '{event.msg}'",
+                    }
+                )
+            )
 
 
 async def get_from_pastebin(num):
@@ -98,7 +95,7 @@ async def slack_pb(text, channel):
             data={
                 "content": text,
                 "filetype": "auto",
-                "token": slack_settings["token"],
+                "token": SLACK_TOKEN,
                 "filename": None,
                 "channels": channel,
             },
@@ -119,8 +116,14 @@ async def handle_pastebin(irc, event):
 
 @command
 async def forward(irc, event):
-    if event.nick != NAME and event.msg and event.msg.strip() != "":
-        asyncio.Task(to_ws.put(event))
+    if event.nick != NAME and event.msg and event.msg.strip() != "" and event.code == "PRIVMSG":
+        channel = irc_to_slack(event.channel)
+        if channel:
+            asyncio.Task(
+                to_ws.put(
+                    {"channel": channel, "text": f"*{event.nick}* says '{event.msg}'"}
+                )
+            )
 
 
 def parse_line(line):
@@ -235,16 +238,13 @@ def irc_to_slack(irc_chan, inverse={v: k for k, v in settings["chanmaps"].items(
 async def consume_to_ws(ws):
     while asyncio.get_event_loop().is_running():
         event = await to_ws.get()
-        logger.debug(f"Got {event}; sending to {ws}")
-        chan = irc_to_slack(event.channel)
-        if event.code == 'PRIVMSG' and chan:
-            m = {
-                "id": next(SLACK_IDS),
-                "type": "message",
-                "channel": chan,
-                "text": f"*{event.nick}* says '{event.msg}'",
-            }
-            await ws.send(json.dumps(m))
+        m = {
+            "id": next(SLACK_IDS),
+            "type": "message",
+            "channel": event["channel"],
+            "text": event["text"],
+        }
+        await ws.send(json.dumps(m))
 
 
 async def produce_to_irc(ws):
@@ -272,8 +272,7 @@ def handle_chat(msg, irc):
     if not ch:
         return
 
-    message = f"{user} says '{message}'"
-    irc.send_to_channel(ch, message)
+    irc.send_to_channel(ch, f"{user} says '{message}'")
 
 
 def handle_upload(msg, irc):

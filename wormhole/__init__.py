@@ -86,6 +86,7 @@ app.register_blueprint(html, url_prefix=r'')
 if __name__ == "__main__":
     if all([CLIENT_ID, CLIENT_SECRET, TOKEN_VALUE, VERIFICATION_TOKEN]):
         from gevent import pywsgi
+
         server = pywsgi.WSGIServer(('', 5000), app)
         server.serve_forever()
     else:

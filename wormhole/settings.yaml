@@ -12,6 +12,8 @@ irc:
     sbr-sysmgmt:
     - 'insights '
     - 'insights:'
+  highlights_destinations:
+  - insights
   nick: wormhole
   port: 6667
   server: localhost
