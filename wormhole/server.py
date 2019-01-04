@@ -190,6 +190,8 @@ class IRCProtocol(asyncio.Protocol):
 
     def handle_event(self, event):
         logger.debug(f"Event -> '{event}'")
+        if event.code == "PRIVMSG":
+            logger.info(f"{event.channel}:{event.nick}:{event.msg}")
         if event.code == "PING":
             self.send_data(f"PONG {event.args[0]}")
         else:
@@ -232,19 +234,24 @@ def irc_to_slack(irc_chan, inverse={v: k for k, v in settings["chanmaps"].items(
         return SLACK_NAME_TO_ID[inverse[irc_chan.strip("#")]]
 
     except Exception as e:
-        logger.debug("No mapping for irc channel %s in %s: %s", irc_chan, inverse, e)
+        logger.info("No mapping for irc channel %s in %s: %s", irc_chan, inverse, e)
 
 
 async def consume_to_ws(ws):
     while asyncio.get_event_loop().is_running():
         event = await to_ws.get()
-        m = {
-            "id": next(SLACK_IDS),
-            "type": "message",
-            "channel": event["channel"],
-            "text": event["text"],
-        }
-        await ws.send(json.dumps(m))
+        logger.debug(f"Got {event}; sending to {ws}")
+        if not event.channel:
+            continue
+        chan = irc_to_slack(event.channel)
+        if event.code == 'PRIVMSG' and chan:
+            m = {
+                "id": next(SLACK_IDS),
+                "type": "message",
+                "channel": chan,
+                "text": f"*{event.nick}* says '{event.msg}'",
+            }
+            await ws.send(json.dumps(m))
 
 
 async def produce_to_irc(ws):
