@@ -1,0 +1,72 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  generation: 12
+  labels:
+    app: wormhole
+  name: wormhole
+  namespace: insights
+spec:
+  replicas: 1
+  selector:
+    app: wormhole
+    deploymentconfig: wormhole
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      creationTimestamp: null
+      labels:
+        app: wormhole
+        deploymentconfig: wormhole
+    spec:
+      containers:
+      - command:
+        - python3
+        - wormhole/server.py
+        env:
+        - name: SETTINGS_FILE
+          value: /etc/wormhole/prod-settings.yaml
+        image: docker-registry.default.svc:5000/insights/wormhole@sha256:95cfb7522a6bd4b471308791d35453ae0faad7df07a83368a867e4abfefc2796
+        imagePullPolicy: Always
+        name: wormhole
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/wormhole
+          name: volume-g7mdr
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: volume-g7mdr
+        secret:
+          defaultMode: 420
+          secretName: wormhole-settings
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - wormhole
+      from:
+        kind: ImageStreamTag
+        name: wormhole:latest
+        namespace: insights
+      lastTriggeredImage: docker-registry.default.svc:5000/insights/wormhole@sha256:95cfb7522a6bd4b471308791d35453ae0faad7df07a83368a867e4abfefc2796
+    type: ImageChange
