@@ -118,12 +118,11 @@ async def handle_pastebin(irc, event):
 async def forward(irc, event):
     if event.nick != NAME and event.msg and event.msg.strip() != "" and event.code == "PRIVMSG":
         channel = irc_to_slack(event.channel)
+        logger.info(f"About to forward to {channel}")
         if channel:
-            asyncio.Task(
-                to_ws.put(
-                    {"channel": channel, "text": f"*{event.nick}* says '{event.msg}'"}
-                )
-            )
+            payload = {"channel": channel, "text": f"*{event.nick}* says '{event.msg}'"}
+            await to_ws.put(payload)
+
 
 
 def parse_line(line):
@@ -173,6 +172,7 @@ class IRCProtocol(asyncio.Protocol):
         logger.debug(irc_settings)
         for channel in irc_settings["channels"]:
             self.join(channel)
+        logger.debug("About to start consume_to_irc")
         self.consume_task = asyncio.Task(consume_to_irc(self))
 
     def data_received(self, data):
@@ -238,20 +238,14 @@ def irc_to_slack(irc_chan, inverse={v: k for k, v in settings["chanmaps"].items(
 
 
 async def consume_to_ws(ws):
+    logger.info("Starting to consume %s", to_ws)
+    logger.info(asyncio.get_event_loop().is_running())
     while asyncio.get_event_loop().is_running():
         event = await to_ws.get()
+        event["id"] = next(SLACK_IDS)
+        event["type"] = "message"
         logger.debug(f"Got {event}; sending to {ws}")
-        if not event.channel:
-            continue
-        chan = irc_to_slack(event.channel)
-        if event.code == 'PRIVMSG' and chan:
-            m = {
-                "id": next(SLACK_IDS),
-                "type": "message",
-                "channel": chan,
-                "text": f"*{event.nick}* says '{event.msg}'",
-            }
-            await ws.send(json.dumps(m))
+        await ws.send(json.dumps(event))
 
 
 async def produce_to_irc(ws):
@@ -303,8 +297,10 @@ def handle_upload(msg, irc):
 
 
 async def consume_to_irc(irc):
+    logger.debug(f"staring loop to consume: {to_irc}")
     while asyncio.get_event_loop().is_running():
         msg = await to_irc.get()
+        logger.debug("consume_to_irc:Got %s", msg)
         msg = json.loads(msg)
         logger.debug("Read '%s' from the to_irc Q", msg)
         for cb in (handle_chat, handle_upload):
@@ -345,6 +341,7 @@ async def wsclient():
         pti.cancel()
 
     # connection lost, reconnect...
+    logger.info("Slack connection lost, reconnecting.")
     asyncio.Task(wsclient())
 
 
