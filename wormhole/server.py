@@ -20,7 +20,8 @@ to_irc = asyncio.Queue()
 
 HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
-with open(os.path.join(HERE, "settings.yaml")) as settings_fp:
+SETTINGS_PATH = os.environ.get("SETTINGS_FILE", os.path.join(HERE, "settings.yaml"))
+with open(SETTINGS_PATH) as settings_fp:
     settings = yaml.safe_load(settings_fp)
 
 irc_settings = settings["irc"]
