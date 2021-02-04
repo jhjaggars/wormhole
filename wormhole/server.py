@@ -1,10 +1,10 @@
-from collections import namedtuple
 import asyncio
 import itertools
 import json
 import logging
 import os
 import re
+from collections import namedtuple
 
 import aiohttp
 import websockets
@@ -27,7 +27,6 @@ irc_settings = settings["irc"]
 SLACK_TOKEN = os.environ["SLACK_TOKEN"]
 
 NAME = irc_settings.get("nick", "wormhole")
-HIGHLIGHTS = irc_settings.get("highlights", {})
 IRC_COMMAND_REGISTRY = []
 
 SLACK_HEADERS = {"Authorization": f"Bearer {SLACK_TOKEN}"}
@@ -42,44 +41,6 @@ def command(func):
     return func
 
 
-def get_highlights_for(channel):
-    channel = channel.strip("#")
-    for hl in itertools.chain(HIGHLIGHTS.get("all", []), HIGHLIGHTS.get(channel, [])):
-        yield hl
-
-
-def contains_highlight(event):
-    msg = event.msg.lower()
-    if event.code != "PRIVMSG":
-        return False
-
-    for hl in get_highlights_for(event.channel):
-        if isinstance(hl, list) and all(h in msg for h in hl):
-            logger.debug(f"Found {hl}!")
-            return True
-
-        elif not isinstance(hl, list) and hl in msg:
-            logger.debug(f"Found {hl}!")
-            return True
-
-    return False
-
-
-@command
-async def ping_insights(irc, event):
-    if contains_highlight(event):
-        logger.debug("saw a highlight ping")
-        for dest in irc_settings["highlights-destinations"]:
-            asyncio.Task(
-                to_ws.put(
-                    {
-                        "channel": SLACK_NICK_TO_ID[dest],
-                        "text": f"({event.channel}) *{event.nick}* says '{event.msg}'",
-                    }
-                )
-            )
-
-
 async def get_from_pastebin(num):
     async with aiohttp.ClientSession(headers=SLACK_HEADERS) as session:
         async with session.get(
@@ -91,7 +52,7 @@ async def get_from_pastebin(num):
 async def slack_pb(text, channel):
     async with aiohttp.ClientSession(headers=SLACK_HEADERS) as session:
         async with session.post(
-            f"https://slack.com/api/files.upload",
+            "https://slack.com/api/files.upload",
             data={
                 "content": text,
                 "filetype": "auto",
