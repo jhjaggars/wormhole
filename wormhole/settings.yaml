@@ -2,20 +2,10 @@ irc:
   channels:
   - wormhole-testing
   - insights
-  highlights:
-    all:
-    - - ping
-      - insights
-    satellite6:
-    - 'insights '
-    - 'insights:'
-    sbr-sysmgmt:
-    - 'insights '
-    - 'insights:'
-  highlights_destinations:
-  - insights
   nick: wormhole
   port: 6667
   server: localhost
+slack:
+  token: placeholder
 chanmaps: # slack <-> irc
   bottesting: wormhole-testing
