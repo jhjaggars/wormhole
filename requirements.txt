@@ -1,0 +1,13 @@
+aiohttp==3.7.3
+async-timeout==3.0.1
+attrs==20.3.0
+chardet==3.0.4
+idna==3.1
+idna-ssl==1.1.0
+multidict==5.1.0
+PyYAML==5.4.1
+typing-extensions==3.7.4.3
+websockets==8.1
+yarl==1.6.3
+zope.event==4.5.0
+zope.interface==5.2.0
