@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 gevent = "==1.2.2"
 requests = "==2.18.4"
-Flask = "==0.12.2"
+Flask = "==1.0"
 pyyaml = "*"
 websockets = "*"
 aiohttp = "*"
