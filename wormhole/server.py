@@ -25,7 +25,7 @@ with open(SETTINGS_PATH) as settings_fp:
     settings = yaml.safe_load(settings_fp)
 
 irc_settings = settings["irc"]
-SLACK_TOKEN = settings["slack"].get("token", os.environ["SLACK_TOKEN"])
+SLACK_TOKEN = settings["slack"].get("token", os.environ.get("SLACK_TOKEN"))
 
 NAME = irc_settings.get("nick", "wormhole")
 IRC_COMMAND_REGISTRY = []
