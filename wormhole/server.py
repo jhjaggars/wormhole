@@ -11,7 +11,7 @@ import websockets
 import yaml
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG if os.environ.get("DEBUG") else logging.INFO)
 
 Event = namedtuple("Event", "line source nick user host code args msg channel")
 
